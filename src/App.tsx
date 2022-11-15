@@ -1,5 +1,6 @@
 import { Form, json, ActionFunction, useActionData } from "react-router-dom";
 import {
+  Flex,
   Center,
   Container,
   Heading,
@@ -8,34 +9,36 @@ import {
   VStack,
   Button,
 } from "@chakra-ui/react";
-import "./App.css";
 import converter from "./bin2dec";
-import invariant from "tiny-invariant";
+import { checkFormat } from "./utils/checkformat";
 
 export type ActionData =
   | {
-      binaryNumber: null | string;
+      number: null | string;
     }
   | undefined;
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
-  const binaryNumber = formData.get("number");
+  const number = formData.get("number")?.toString().trim();
+  if (number === undefined) return json<ActionData>({ number: "" });
 
   const errors: ActionData = {
-    binaryNumber: binaryNumber ? null : "Binary number required",
+    number: checkFormat(number),
   };
-  if (errors.binaryNumber) return json<ActionData>(errors);
 
-  return json<ActionData>({ binaryNumber: String(binaryNumber) });
+  const hasErrors = errors.number;
+  if (hasErrors) return json<ActionData>(errors);
+
+  const result = converter(String(number));
+  return json<ActionData>({ number: result });
 };
 
 function App() {
-  const binaryNumber = useActionData() as ActionData;
-  const decimal = converter(binaryNumber);
-
+  const number = useActionData() as ActionData;
+  console.log(number);
   return (
-    <Container>
+    <Container as="main">
       <VStack>
         <Heading as="h1">Bin2Dec</Heading>
         <Text>Convert binary numbers to decimals</Text>
@@ -45,8 +48,8 @@ function App() {
             <Button type="submit">Convert</Button>
           </Form>
         </Center>
+        <Text>{number?.number}</Text>
       </VStack>
-      <Text>{decimal}</Text>
     </Container>
   );
 }
